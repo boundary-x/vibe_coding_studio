@@ -5,17 +5,13 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>AI Vibe Coding Studio</title>
     
-    <!-- React & ReactDOM -->
     <script src="https://unpkg.com/react@18/umd/react.production.min.js" crossorigin></script>
     <script src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js" crossorigin></script>
     
-    <!-- Babel for in-browser JSX compilation -->
     <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
     
-    <!-- Tailwind CSS -->
     <script src="https://cdn.tailwindcss.com"></script>
     
-    <!-- FontAwesome Icons -->
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
 
     <style>
@@ -407,26 +403,30 @@ RULES:
                     let explanation = "";
                     let aiCode = "";
                     
-                    // 마크다운 형식으로 분리 (코드와 설명 추출) 백틱 버그 방지용 동적 RegExp 생성
-                    const tick3 = String.fromCharCode(96, 96, 96);
-                    const codeRegex = new RegExp(tick3 + '(?:typescript|javascript|ts|js)?(?:\\\\n|\\\\r\\\\n)([\\\\s\\\\S]*?)' + tick3, 'i');
+                    // 정규식을 사용한 문자열 파싱 시 Babel 에러 방지를 위해 문자열 동적 결합 사용
+                    const marker = String.fromCharCode(96, 96, 96);
+                    const codeRegex = new RegExp(marker + '(?:typescript|javascript|ts|js)?\\s*([\\s\\S]*?)' + marker, 'i');
                     const codeBlockMatch = aiCodeRaw.match(codeRegex);
                     
                     if (codeBlockMatch) {
                         aiCode = codeBlockMatch[1].trim();
+                        // 코드 블록을 제거한 나머지 텍스트를 설명으로 추출
                         explanation = aiCodeRaw.replace(codeRegex, '').trim();
                     } else {
-                        aiCode = aiCodeRaw.replace(new RegExp(tick3, 'g'), '').trim();
+                        // 만약 AI가 마크다운 코드 블록을 빼먹었을 경우 (안전 장치)
+                        aiCode = aiCodeRaw.replace(new RegExp(marker, 'g'), '').trim();
                     }
 
+                    // 설명 텍스트 최종 포맷팅
+                    let finalExplanation = "";
                     if (!explanation) {
-                        explanation = "코드를 완벽하게 조립했습니다! 오른쪽 에디터에서 확인하고 복사하세요.";
+                        finalExplanation = "코드를 완벽하게 조립했습니다! 오른쪽 에디터에서 확인하고 복사하세요.";
                     } else {
-                        explanation = "코드를 완벽하게 조립했습니다! 오른쪽 에디터에서 확인하고 복사하세요.\n\n💡 간단 설명: " + explanation;
+                        finalExplanation = "코드를 완벽하게 조립했습니다! 오른쪽 에디터에서 확인하고 복사하세요.\n\n💡 간단 설명: \n" + explanation;
                     }
 
                     setGeneratedCode(aiCode);
-                    setMessages(prev => [...prev, { role: 'assistant', text: explanation }]);
+                    setMessages(prev => [...prev, { role: 'assistant', text: finalExplanation }]);
                 } catch (error) {
                     setMessages(prev => [...prev, { role: 'system', text: `오류 발생: ${error.message}` }]);
                 } finally {
@@ -623,7 +623,7 @@ RULES:
                                     </div>
                                 </div>
                                 <div className="flex items-center gap-3">
-                                     <button 
+                                    <button 
                                         onClick={handleExplainCode}
                                         className="flex items-center gap-2 px-4 py-2 bx-pill-btn bx-btn-outline text-xs"
                                         title="이 코드가 무슨 뜻인지 설명해줘요"
@@ -636,9 +636,8 @@ RULES:
                                         onClick={() => {
                                             setGeneratedCode("// 초기화됨");
                                             setMessages([{ role: 'assistant', text: '코드가 초기화되었습니다. 새로운 코드를 작성해보세요!' }]);
-                                            setExplanationText("");
-                                            setShowExplanation(false);
                                             setPromptMode('new');
+                                            setShowExplanation(false);
                                         }}
                                         className="flex items-center gap-2 px-4 py-2 bx-pill-btn bx-btn-danger-outline text-xs"
                                     >
@@ -667,7 +666,7 @@ RULES:
                                         <span className="text-[10px] text-white bg-black/30 px-2 py-1 rounded">TypeScript / JavaScript</span>
                                     </div>
                                 </div>
-                                
+
                                 {showExplanation && (
                                     <div className="w-2/5 h-full bg-white rounded-2xl shadow-lg border border-[#D1D5DB] flex flex-col animate-fade-in overflow-hidden">
                                         <div className="p-5 border-b border-[#D1D5DB] flex justify-between items-center bg-[#F8F9FA]">
