@@ -5,13 +5,17 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>AI Vibe Coding Studio</title>
     
+    <!-- React & ReactDOM -->
     <script src="https://unpkg.com/react@18/umd/react.production.min.js" crossorigin></script>
     <script src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js" crossorigin></script>
     
+    <!-- Babel for in-browser JSX compilation -->
     <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
     
+    <!-- Tailwind CSS -->
     <script src="https://cdn.tailwindcss.com"></script>
     
+    <!-- FontAwesome Icons -->
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
 
     <style>
@@ -257,7 +261,7 @@ declare namespace vibeLamp {
 
             // Placeholder 동적 설정
             const getPlaceholder = () => {
-                if (promptMode === 'new') return "새로운 코드를 어떻게 코딩할지 설명하세요...";
+                if (promptMode === 'new') return "새로운 코드를 어떻게 짤지 설명하세요...";
                 if (promptMode === 'improve') return "현재 코드를 어떻게 발전시키고 싶나요? (예: 후진 기능 추가해줘)";
                 if (promptMode === 'fix') return "어떤 문제가 발생했나요? (예: A버튼을 눌러도 불이 안 켜져)";
                 return "";
@@ -335,8 +339,8 @@ declare namespace vibeLamp {
                     : `- If the user asks for "화면", "디스플레이", "글자 출력", you MUST use \`vibeLamp.showString(...)\` or \`vibeLamp.showNumber(...)\`.\n   - If the user asks for "라이트", "네오픽셀", you MUST use \`strip.showColor(...)\` or \`strip.showRainbow(...)\`.`;
 
                 const systemPrompt = `
-You are an expert MakeCode JavaScript/TypeScript programmer for the "${robotName}".
-Your ONLY goal is to write complete, runnable code for the BBC Micro:bit based on the user's request.
+You are an expert MakeCode JavaScript/TypeScript programmer for the "${robotName}" based on BBC Micro:bit V2.
+Your ONLY goal is to write complete, runnable code for the BBC Micro:bit V2 based on the user's request.
 
 [🚨 ZERO HALLUCINATION POLICY 🚨]
 You are STRICTLY FORBIDDEN from inventing any functions, methods, enums, or properties.
@@ -360,7 +364,9 @@ RULES:
    - Inside \`basic.forever\`, ONLY assign values.
 4. **STARTUP / TOP-LEVEL CODE:** - Do NOT use \`basic.onStart()\`. In MakeCode, code written at the top-level acts as the "on start" block.
    - Place all initialization code directly at the top level of the file.
-5. **OUTPUT FORMAT:** Return ONLY the raw code. Do NOT use markdown code blocks (no \`\`\`typescript). Do NOT explain the code here.
+5. **OUTPUT FORMAT:** - You MUST output a brief explanation of the code (1~2 sentences in Korean) FIRST.
+   - THEN, output the actual code wrapped in a markdown code block (\`\`\`typescript ... \`\`\`).
+   - Do NOT mix explanation inside the code block.
 6. **OLED DISPLAY COLOR:** When using display functions ALWAYS set the color parameter to \`1\` (ON) so the text is visible.
 7. **LED MATRIX vs NEOPIXEL vs OLED:**
    ${matrixRule}
@@ -389,10 +395,38 @@ RULES:
 
                 try {
                     const aiCodeRaw = await callGemini(finalQuery, systemPrompt);
-                    const aiCode = aiCodeRaw.replace(/```(javascript|typescript|js|ts)/gi, '').replace(/```/g, '').trim();
+
+                    // 가드레일(개인정보, 잡담) 방어 처리
+                    if (aiCodeRaw.includes('⚠️')) {
+                        setGeneratedCode('// 지원하지 않는 프롬프트입니다.');
+                        setMessages(prev => [...prev, { role: 'system', text: aiCodeRaw.replace(/\/\//g, '').trim() }]);
+                        setIsLoading(false);
+                        return;
+                    }
+
+                    let explanation = "";
+                    let aiCode = "";
+                    
+                    // 마크다운 형식으로 분리 (코드와 설명 추출) 백틱 버그 방지용 동적 RegExp 생성
+                    const tick3 = String.fromCharCode(96, 96, 96);
+                    const codeRegex = new RegExp(tick3 + '(?:typescript|javascript|ts|js)?(?:\\\\n|\\\\r\\\\n)([\\\\s\\\\S]*?)' + tick3, 'i');
+                    const codeBlockMatch = aiCodeRaw.match(codeRegex);
+                    
+                    if (codeBlockMatch) {
+                        aiCode = codeBlockMatch[1].trim();
+                        explanation = aiCodeRaw.replace(codeRegex, '').trim();
+                    } else {
+                        aiCode = aiCodeRaw.replace(new RegExp(tick3, 'g'), '').trim();
+                    }
+
+                    if (!explanation) {
+                        explanation = "코드를 완벽하게 조립했습니다! 오른쪽 에디터에서 확인하고 복사하세요.";
+                    } else {
+                        explanation = "코드를 완벽하게 조립했습니다! 오른쪽 에디터에서 확인하고 복사하세요.\n\n💡 간단 설명: " + explanation;
+                    }
 
                     setGeneratedCode(aiCode);
-                    setMessages(prev => [...prev, { role: 'assistant', text: '코드를 완벽하게 조립했습니다! 오른쪽 에디터에서 확인하고 복사하세요.' }]);
+                    setMessages(prev => [...prev, { role: 'assistant', text: explanation }]);
                 } catch (error) {
                     setMessages(prev => [...prev, { role: 'system', text: `오류 발생: ${error.message}` }]);
                 } finally {
