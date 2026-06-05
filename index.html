@@ -4,6 +4,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>AI Vibe Coding Studio</title>
+    <link rel="icon" href="https://raw.githubusercontent.com/boundary-x/ai_teachable_machine/refs/heads/main/Favicon.png"/>
     
     <script src="https://unpkg.com/react@18/umd/react.production.min.js" crossorigin></script>
     <script src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js" crossorigin></script>
@@ -106,12 +107,13 @@ declare namespace aiPonybot {
     enum PingUnit { MicroSeconds, Centimeters, Inches }
     function ping(unit: PingUnit, maxCmDistance?: number): number;
     
+    enum SensorVersion { V1 = 1, V2 = 2 }
     enum DetectedColor { Red, Green, Blue, Yellow }
+    function initColorSensor(version: SensorVersion): void;
     function getLight(): number;
     function getRed(): number;
     function getGreen(): number;
     function getBlue(): number;
-    function setColorIntegrationTime(time: number): void;
     function isColorAdvanced(color: DetectedColor, threshold?: number): boolean;
     function isColorInRange(minR: number, maxR: number, minG: number, maxG: number, minB: number, maxB: number): boolean;
     
@@ -125,6 +127,19 @@ declare namespace aiPonybot {
     enum HandDataType { LeftDir, LeftSpeed, RightDir, RightSpeed }
     function parseFaceUnified(data: string, type: FaceDataType): number;
     function parseHandPoseUnified(data: string, type: HandDataType, format: ReturnFormat): any;
+    
+    enum Display { On = 1, Off = 0 }
+    function invert(on?: boolean): void;
+    function clear(): void;
+    function display(on: boolean): void;
+    function pixel(x: number, y: number, color?: number): void;
+    function showString(text: string, column: number, row: number, color?: number): void;
+    function showNumber(number: number, column: number, row: number, color?: number): void;
+    function printString(text: string, newline?: boolean): void;
+    function printNumber(number: number, newline?: boolean): void;
+    function horizontalLine(x: number, y: number, length: number, color?: number): void;
+    function verticalLine(x: number, y: number, length: number, color?: number): void;
+    function rectangle(x1: number, y1: number, x2: number, y2: number, color?: number): void;
 }
 
 declare namespace neopixel {
@@ -160,6 +175,7 @@ declare enum NeoPixelColors { Red = 0xFF0000, Orange = 0xFFA500, Yellow = 0xFFFF
 declare enum NeoPixelMode { RGB = 1, RGBW = 2, RGB_RGB = 3 }
 
 declare namespace vibeLamp {
+    enum HueInterpolationDirection { Clockwise, CounterClockwise, Shortest }
     class Strip {
         showColor(rgb: number): void;
         clear(): void;
@@ -331,7 +347,7 @@ declare namespace vibeLamp {
 
                 // 4. OLED 및 매트릭스 LED 규칙
                 const matrixRule = isPonybot
-                    ? `- If the user simply asks for "LED", "아이콘", "하트", you MUST use the Micro:bit's built-in 5x5 LED matrix (e.g., \`basic.showIcon(...)\`). Do NOT use neopixel for this.\n   - If the user EXPLICITLY asks for "포니봇 LED", "네오픽셀", ONLY THEN use the \`neopixel\` extension.`
+                    ? `- If the user asks to display basic shapes like "LED", "아이콘", "하트", use the Micro:bit's built-in 5x5 LED matrix (e.g., \`basic.showIcon(...)\`).\n   - If the user asks for "포니봇 LED", "네오픽셀", use the \`neopixel\` extension.\n   - If the user asks for "OLED", "화면", "디스플레이", "글자 출력", you MUST use \`aiPonybot.showString(...)\` or \`aiPonybot.showNumber(...)\`.`
                     : `- If the user asks for "화면", "디스플레이", "글자 출력", you MUST use \`vibeLamp.showString(...)\` or \`vibeLamp.showNumber(...)\`.\n   - If the user asks for "라이트", "네오픽셀", you MUST use \`strip.showColor(...)\` or \`strip.showRainbow(...)\`.`;
 
                 const systemPrompt = `
