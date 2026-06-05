@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>AI Ponybot Vibe Coding Studio</title>
+    <title>AI Vibe Coding Studio</title>
     
     <script src="https://unpkg.com/react@18/umd/react.production.min.js" crossorigin></script>
     <script src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js" crossorigin></script>
@@ -21,7 +21,7 @@
         :root {
             --font-main: 'Pretendard Variable', Pretendard, -apple-system, BlinkMacSystemFont, system-ui, Roboto, 'Helvetica Neue', 'Segoe UI', 'Apple SD Gothic Neo', 'Noto Sans KR', 'Malgun Gothic', 'Apple Color Emoji', 'Segoe UI Emoji', 'Segoe UI Symbol', sans-serif;
         }
-        body, #root, .font-sans, button, input, textarea { 
+        body, #root, .font-sans, button, input, textarea, select { 
             font-family: var(--font-main) !important; 
         }
         .code-font { 
@@ -74,9 +74,10 @@
     <script type="text/babel">
         const { useState, useEffect, useRef } = React;
 
-        // --- EXACT Extension Source Code Definitions (Zero Hallucination Context) ---
-        const EXTENSION_SOURCE = `
-// [CRITICAL] YOU MUST ONLY USE THESE EXACT FUNCTIONS AND ENUMS. DO NOT INVENT FUNCTIONS.
+        // =========================================================================
+        // 1. AI 포니봇 확장블록 정의
+        // =========================================================================
+        const PONYBOT_EXTENSION = `
 declare enum DigitalPin { P0, P1, P2, P3, P4, P5, P6, P7, P8, P9, P10, P11, P12, P13, P14, P15, P16 }
 
 declare namespace aiPonybot {
@@ -114,19 +115,6 @@ declare namespace aiPonybot {
     function isColorAdvanced(color: DetectedColor, threshold?: number): boolean;
     function isColorInRange(minR: number, maxR: number, minG: number, maxG: number, minB: number, maxB: number): boolean;
     
-    enum Display { On = 1, Off = 0 }
-    function invert(on?: boolean): void;
-    function clear(): void;
-    function display(on: boolean): void;
-    function pixel(x: number, y: number, color?: number): void;
-    function showString(text: string, column: number, row: number, color?: number): void;
-    function showNumber(number: number, column: number, row: number, color?: number): void;
-    function printString(text: string, newline?: boolean): void;
-    function printNumber(number: number, newline?: boolean): void;
-    function horizontalLine(x: number, y: number, length: number, color?: number): void;
-    function verticalLine(x: number, y: number, length: number, color?: number): void;
-    function rectangle(x1: number, y1: number, x2: number, y2: number, color?: number): void;
-    
     enum UARTDataType { X, Y, W, H, D }
     enum ColorDataType { R, G, B, I }
     enum ReturnFormat { String, Number }
@@ -163,46 +151,121 @@ declare namespace neopixel {
 }
 `;
 
+        // =========================================================================
+        // 2. 바이브램프 확장블록 정의
+        // =========================================================================
+        const VIBELAMP_EXTENSION = `
+declare enum DigitalPin { P0, P1, P2, P3, P4, P5, P6, P7, P8, P9, P10, P11, P12, P13, P14, P15, P16 }
+declare enum NeoPixelColors { Red = 0xFF0000, Orange = 0xFFA500, Yellow = 0xFFFF00, Green = 0x00FF00, Blue = 0x0000FF, Indigo = 0x000080, Violet = 0x8a2be2, White = 0xFFFFFF, Black = 0x000000 }
+declare enum NeoPixelMode { RGB = 1, RGBW = 2, RGB_RGB = 3 }
+
+declare namespace vibeLamp {
+    class Strip {
+        showColor(rgb: number): void;
+        clear(): void;
+        setBrightness(brightness: number): void;
+        createRange(start: number, length: number): Strip;
+        show(): void;
+        setPixelColor(pixelOffset: number, rgb: number): void;
+        showRainbow(startHue?: number, endHue?: number): void;
+        showBarGraph(value: number, high: number): void;
+        shift(offset?: number): void;
+        rotate(offset?: number): void;
+        getLength(): number;
+        setMatrixWidth(width: number, rotation: number, chain: number): void;
+        setMatrixColor(x: number, y: number, rgb: number): void;
+        setPin(pin: DigitalPin): void;
+    }
+    function create(pin: DigitalPin, numLeds: number, mode: NeoPixelMode): Strip;
+    function rgb(red: number, green: number, blue: number): number;
+    function pickColor(color: number): number;
+    function colors(color: NeoPixelColors): number;
+    function hsl(hue: number, saturation: number, luminance: number): number;
+
+    enum UARTDataType { X, Y, W, H, D }
+    enum ColorDataType { R, G, B, I }
+    enum ReturnFormat { String, Number }
+    enum FaceDataType { X, Y, Z, Yaw, Pitch, Mouth, LeftEye, RightEye, Roll, Smile, Visible }
+    enum HandDataType { LeftDir, LeftSpeed, RightDir, RightSpeed }
+
+    function parseUARTUnified(data: string, type: UARTDataType, format: ReturnFormat): any;
+    function parseColorUnified(data: string, color: ColorDataType, format: ReturnFormat): any;
+    function parseFaceUnified(data: string, type: FaceDataType): number;
+    function parseHandPoseUnified(data: string, type: HandDataType, format: ReturnFormat): any;
+
+    enum Display { On = 1, Off = 0 }
+    function invert(on?: boolean): void;
+    function clear(): void;
+    function display(on: boolean): void;
+    function pixel(x: number, y: number, color?: number): void;
+    function showString(text: string, column: number, row: number, color?: number): void;
+    function showNumber(number: number, column: number, row: number, color?: number): void;
+    function printString(text: string, newline?: boolean): void;
+    function printNumber(number: number, newline?: boolean): void;
+    function horizontalLine(x: number, y: number, length: number, color?: number): void;
+    function verticalLine(x: number, y: number, length: number, color?: number): void;
+    function rectangle(x1: number, y1: number, x2: number, y2: number, color?: number): void;
+}
+`;
+
         const MODELS = [
-            "gemini-3.5-flash",
-            "gemini-flash-latest",
-            "gemini-3-flash-preview"
+            "gemini-2.5-flash",
+            "gemini-1.5-flash", 
+            "gemini-pro"
         ];
 
         const App = () => {
             const [apiKey, setApiKey] = useState('');
             const [showSettings, setShowSettings] = useState(false);
-            const [messages, setMessages] = useState([
-                { 
-                    role: 'assistant', 
-                    text: '안녕하세요! 바운더리엑스 바이브코딩 스튜디오에 오신 것을 환영합니다.\n무엇을 코딩해 드릴까요? (예: "전진하다가 빨간색을 보면 멈춰줘")\n\n💡 팁: 시작 전 우측 상단의 ⚙️(설정) 버튼을 눌러 선생님이 주신 API 키를 입력해주세요!' 
-                }
-            ]);
             
+            // 제품 상태 (ponybot / vibelamp)
+            const [product, setProduct] = useState('ponybot');
+            
+            // 프롬프트 모드 상태 (new / improve / fix)
+            const [promptMode, setPromptMode] = useState('new');
+
+            const [messages, setMessages] = useState([]);
             const [input, setInput] = useState('');
             const [generatedCode, setGeneratedCode] = useState('// 여기에 AI가 생성한 코드가 나타납니다.');
             const [isLoading, setIsLoading] = useState(false);
             const [copySuccess, setCopySuccess] = useState(false);
             
-            // Feature States
-            const [isThinkingIdea, setIsThinkingIdea] = useState(false);
-            const [isRefining, setIsRefining] = useState(false);
             const [showExplanation, setShowExplanation] = useState(false);
             const [explanationText, setExplanationText] = useState('');
             const [isExplaining, setIsExplaining] = useState(false);
 
             const messagesEndRef = useRef(null);
 
+            // 초기 인사말 설정 (제품 전환 시 변경)
+            useEffect(() => {
+                const productName = product === 'ponybot' ? 'AI 포니봇' : '바이브램프';
+                setMessages([
+                    { 
+                        role: 'assistant', 
+                        text: `안녕하세요! ${productName} 바이브코딩 스튜디오에 오신 것을 환영합니다.\n무엇을 코딩해 드릴까요?\n\n💡 팁: 시작 전 우측 상단의 ⚙️(설정) 버튼을 눌러 선생님이 주신 API 키를 입력해주세요!` 
+                    }
+                ]);
+                setGeneratedCode('// 여기에 AI가 생성한 코드가 나타납니다.');
+                setPromptMode('new');
+                setInput('');
+            }, [product]);
+
             const scrollToBottom = () => {
                 messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
             };
-
             useEffect(scrollToBottom, [messages]);
+
+            // Placeholder 동적 설정
+            const getPlaceholder = () => {
+                if (promptMode === 'new') return "새로운 코드를 어떻게 짤지 설명하세요...";
+                if (promptMode === 'improve') return "현재 코드를 어떻게 발전시키고 싶나요? (예: 후진 기능 추가해줘)";
+                if (promptMode === 'fix') return "어떤 문제가 발생했나요? (예: A버튼을 눌러도 불이 안 켜져)";
+                return "";
+            };
 
             // --- AI Logic ---
             const callGemini = async (prompt, systemInstruction) => {
                 let lastError = null;
-
                 for (const model of MODELS) {
                     try {
                         const response = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent?key=${apiKey}`, {
@@ -216,20 +279,17 @@ declare namespace neopixel {
                         });
 
                         const data = await response.json();
-                        
                         if (data.error) {
                             lastError = new Error(`[${model}] ${data.error.message}`);
                             console.warn(lastError.message);
                             continue;
                         }
-                        
                         return data.candidates?.[0]?.content?.parts?.[0]?.text || "";
                     } catch (err) {
                         lastError = err;
                         console.warn(`[${model}] Request failed:`, err);
                     }
                 }
-                
                 throw new Error("지원되는 AI 모델을 찾을 수 없습니다. API 키가 정확한지 확인해주세요.\n최종 에러: " + lastError?.message);
             };
 
@@ -245,11 +305,37 @@ declare namespace neopixel {
                 
                 const userQuery = input;
                 setInput('');
-                setMessages(prev => [...prev, { role: 'user', text: userQuery }]);
+                
+                let modeLabel = "";
+                if (promptMode === 'improve') modeLabel = "[코드 개선] ";
+                if (promptMode === 'fix') modeLabel = "[에러 해결] ";
+                setMessages(prev => [...prev, { role: 'user', text: modeLabel + userQuery }]);
                 setIsLoading(true);
 
+                // ================== 동적 시스템 프롬프트 조립 ==================
+                const isPonybot = product === 'ponybot';
+                
+                // 1. 선언부
+                const extensionSrc = isPonybot ? PONYBOT_EXTENSION : VIBELAMP_EXTENSION;
+                const robotName = isPonybot ? "AI Ponybot" : "Vibe Lamp";
+                
+                // 2. 라이트 초기화 코드
+                const initRule = isPonybot 
+                    ? `\`let strip: neopixel.Strip = null;\`\n   - Initialize it ONCE at the top level: \`strip = neopixel.create(DigitalPin.P8, 4, NeoPixelMode.RGB)\``
+                    : `\`let strip: vibeLamp.Strip = null;\`\n   - Initialize it ONCE at the top level: \`strip = vibeLamp.create(DigitalPin.P8, 12, NeoPixelMode.RGB)\``;
+                
+                // 3. 색상 강제 규칙
+                const colorRule = isPonybot
+                    ? `- [🚨 CRITICAL COLOR OVERRIDE] You MUST use \`neopixel.getColors(NeoPixelColors.Red)\` to get a color value. NEVER use \`neopixel.colors(...)\`. Example: \`strip.showColor(neopixel.getColors(NeoPixelColors.Red))\``
+                    : `- [🚨 CRITICAL COLOR OVERRIDE] You MUST use \`vibeLamp.colors(NeoPixelColors.Red)\` to get a color value. NEVER use \`vibeLamp.getColors(...)\`. Example: \`strip.showColor(vibeLamp.colors(NeoPixelColors.Red))\``;
+
+                // 4. OLED 및 매트릭스 LED 규칙
+                const matrixRule = isPonybot
+                    ? `- If the user simply asks for "LED", "아이콘", "하트", you MUST use the Micro:bit's built-in 5x5 LED matrix (e.g., \`basic.showIcon(...)\`). Do NOT use neopixel for this.\n   - If the user EXPLICITLY asks for "포니봇 LED", "네오픽셀", ONLY THEN use the \`neopixel\` extension.`
+                    : `- If the user asks for "화면", "디스플레이", "글자 출력", you MUST use \`vibeLamp.showString(...)\` or \`vibeLamp.showNumber(...)\`.\n   - If the user asks for "라이트", "네오픽셀", you MUST use \`strip.showColor(...)\` or \`strip.showRainbow(...)\`.`;
+
                 const systemPrompt = `
-You are an expert MakeCode JavaScript/TypeScript programmer for the "AI Ponybot" robot.
+You are an expert MakeCode JavaScript/TypeScript programmer for the "${robotName}".
 Your ONLY goal is to write complete, runnable code for the BBC Micro:bit based on the user's request.
 
 [🚨 ZERO HALLUCINATION POLICY 🚨]
@@ -258,39 +344,51 @@ If a function is not explicitly listed in the declaration below, IT DOES NOT EXI
 
 [EXACT LIBRARY DECLARATIONS]
 \`\`\`typescript
-${EXTENSION_SOURCE}
+${extensionSrc}
 \`\`\`
 
 RULES:
 1. **STRICT COMPLIANCE:** Use ONLY the functions defined above. 
-2. **NEOPIXEL USAGE:** - [CRITICAL] ONLY IF NeoPixels are needed, you MUST declare the strip variable at the top level: \`let strip: neopixel.Strip = null;\`
-   - Initialize it ONCE at the top level (outside of loops): \`strip = neopixel.create(DigitalPin.P8, 4, NeoPixelMode.RGB)\`
-   - Notice that \`NeoPixelMode\` and \`NeoPixelColors\` are GLOBAL enums, do NOT prefix them with \`neopixel.\` when passing them as arguments.
-   - [🚨 CRITICAL COLOR OVERRIDE] You MUST use \`neopixel.getColors(NeoPixelColors.Red)\` to get a color value. NEVER use \`neopixel.colors(...)\`. Example: \`strip.showColor(neopixel.getColors(NeoPixelColors.Red))\`
+2. **LIGHT/NEOPIXEL USAGE:** - [CRITICAL] ONLY IF NeoPixels/Lights are needed, you MUST declare the strip variable at the top level:
+   ${initRule}
+   - Notice that \`NeoPixelMode\` and \`NeoPixelColors\` are GLOBAL enums.
+   ${colorRule}
 3. **BLOCK CONVERSION RULE (CRITICAL FOR MAKECODE):**
    - MakeCode block editor fails to convert 'let' inside loops.
    - You MUST declare variables globally at the top of the code.
    - [🚨 CRITICAL WARNING] ONLY DECLARE VARIABLES THAT ARE ACTUALLY USED IN YOUR LOGIC. DO NOT DECLARE ANY UNUSED VARIABLES.
    - Inside \`basic.forever\`, ONLY assign values.
-   - **IMPORTANT:** Do NOT provide the second parameter (\`maxCmDistance\`) when calling \`aiPonybot.ping\`.
 4. **STARTUP / TOP-LEVEL CODE:** - Do NOT use \`basic.onStart()\`. In MakeCode, code written at the top-level acts as the "on start" block.
    - Place all initialization code directly at the top level of the file.
 5. **OUTPUT FORMAT:** Return ONLY the raw code. Do NOT use markdown code blocks (no \`\`\`typescript). Do NOT explain the code here.
 6. **OLED DISPLAY COLOR:** When using display functions ALWAYS set the color parameter to \`1\` (ON) so the text is visible.
-7. **LED MATRIX vs NEOPIXEL (CRITICAL DISTINCTION):**
-   - If the user simply asks for "LED", "아이콘", "하트", you MUST use the Micro:bit's built-in 5x5 LED matrix (e.g., \`basic.showIcon(...)\`, \`basic.showLeds(...)\`, \`basic.clearScreen()\`). Do NOT use neopixel for this.
-   - If the user EXPLICITLY asks for "포니봇 LED", "네오픽셀", or "포니봇 라이트", ONLY THEN use the \`neopixel\` extension (e.g., \`strip.showColor(...)\`).
-8. **EVENT HANDLERS:** - NEVER place event handlers (like \`input.onButtonPressed\`, \`input.onGesture\`) inside \`basic.forever\` or any other loops. They MUST be declared independently at the top-level.
+7. **LED MATRIX vs NEOPIXEL vs OLED:**
+   ${matrixRule}
+8. **EVENT HANDLERS:** - NEVER place event handlers (like \`input.onButtonPressed\`) inside loops. They MUST be declared independently at the top-level.
 9. **LOOP YIELDING:** - If you use a \`while\` loop, you MUST include \`basic.pause(20)\` inside the loop body to prevent freezing.
 10. **TYPE CONSISTENCY:** - MakeCode is statically typed. Never change a variable's data type after initialization.
-11. **[🚨 GUARDRAIL] PRIVACY PROTECTION:** If the user prompt contains ANY personal information (names, phone numbers, addresses, school names, passwords, etc.) or asks to process such data, you MUST NOT generate any code. Instead, return EXACTLY this string and nothing else:
+11. **[🚨 GUARDRAIL] PRIVACY PROTECTION:** If the user prompt contains ANY personal information (names, phone numbers, addresses, passwords), return EXACTLY this string and nothing else:
 // ⚠️ 바이브코딩 스튜디오는 개인정보를 수집하지 않으며, 관련 답변을 할 수 없어요
-12. **[🚨 GUARDRAIL] OFF-TOPIC PREVENTION:** If the user prompt is conversational chit-chat, jokes, general knowledge questions, or ANYTHING not directly related to programming the AI Ponybot or Micro:bit, you MUST NOT generate any code. Instead, return EXACTLY this string and nothing else:
+12. **[🚨 GUARDRAIL] OFF-TOPIC PREVENTION:** If the user prompt is conversational chit-chat, jokes, or ANYTHING not directly related to programming the robot, return EXACTLY this string and nothing else:
 // ⚠️ 수업과 관련된 바이브코딩 프롬프트를 넣어주세요.
+
+13. **[🚨 CONTEXT AWARENESS]** The user's query may include existing code and a specific request to improve or fix it.
+    - If EXISTING CODE is provided and the user wants to IMPROVE or FIX it: Keep the core structure of the EXISTING CODE and apply the necessary changes.
+    - If the user explicitly asks to "start over", "erase", or "completely rewrite", IGNORE the EXISTING CODE and write fresh code.
 `;
 
+                // ================== 모드별 사용자 쿼리 조립 ==================
+                let finalQuery = userQuery;
+                const codeIsEmpty = generatedCode.includes('여기에 AI가 생성한 코드') || generatedCode.includes('초기화됨');
+
+                if (!codeIsEmpty && promptMode === 'improve') {
+                    finalQuery = `[기존 코드]\n${generatedCode}\n\n[개선 및 추가 요청 사항]\n위 기존 코드의 뼈대를 유지하면서 다음 요청을 반영해줘: ${userQuery}`;
+                } else if (!codeIsEmpty && promptMode === 'fix') {
+                    finalQuery = `[기존 코드]\n${generatedCode}\n\n[문제 상황 및 에러 해결 요청]\n위 기존 코드에서 다음 논리적 문제가 발생했어. 원인을 파악해서 해결된 전체 코드를 줘: ${userQuery}`;
+                }
+
                 try {
-                    const aiCodeRaw = await callGemini(userQuery, systemPrompt);
+                    const aiCodeRaw = await callGemini(finalQuery, systemPrompt);
                     const aiCode = aiCodeRaw.replace(/```(javascript|typescript|js|ts)/gi, '').replace(/```/g, '').trim();
 
                     setGeneratedCode(aiCode);
@@ -299,43 +397,6 @@ RULES:
                     setMessages(prev => [...prev, { role: 'system', text: `오류 발생: ${error.message}` }]);
                 } finally {
                     setIsLoading(false);
-                }
-            };
-
-            const handleSuggestIdea = async () => {
-                if (!apiKey) {
-                    setMessages(prev => [...prev, { role: 'system', text: '⚠️ API 키가 입력되지 않았습니다. 설정에서 API 키를 입력해주세요.' }]);
-                    setShowSettings(true);
-                    return;
-                }
-                setIsThinkingIdea(true);
-                try {
-                    const systemPrompt = "You are a creative robot instructor. Suggest ONE fun, educational, and specific mission for a student using a Micro:bit AI robot car (Ponybot). Example output: '박수를 두 번 치면 회전하고, 장애물을 만나면 멈추는 코드를 짜줘.' Return ONLY the suggested command in Korean.";
-                    const idea = await callGemini("Suggest a fun robot coding mission.", systemPrompt);
-                    setInput(idea.trim());
-                } catch (error) {
-                    setMessages(prev => [...prev, { role: 'system', text: "아이디어 생성 중 오류가 발생했습니다." }]);
-                } finally {
-                    setIsThinkingIdea(false);
-                }
-            };
-
-            const handleRefinePrompt = async () => {
-                if (!input.trim()) return;
-                if (!apiKey) {
-                    setMessages(prev => [...prev, { role: 'system', text: '⚠️ API 키가 입력되지 않았습니다. 설정에서 API 키를 입력해주세요.' }]);
-                    setShowSettings(true);
-                    return;
-                }
-                setIsRefining(true);
-                try {
-                    const systemPrompt = "You are an expert prompt engineer for educational robots. Reword the user's simple command into a precise, logic-based instruction for a Micro:bit robot. Include specific details like duration, speed, sensor conditions, visual feedback (LEDs vs NeoPixels). Keep it natural, polite, and in Korean. The output should be ready to use as a better prompt. Do NOT generate code, just the refined text prompt. Ensure suggested actions are possible within the aiPonybot and neopixel capabilities.";
-                    const refined = await callGemini(input, systemPrompt);
-                    setInput(refined.trim());
-                } catch (error) {
-                    setMessages(prev => [...prev, { role: 'system', text: "프롬프트 최적화 중 오류가 발생했습니다." }]);
-                } finally {
-                    setIsRefining(false);
                 }
             };
 
@@ -393,7 +454,24 @@ RULES:
                             </a>
                             <div className="h-4 w-px bg-[#444] mx-1"></div>
                             <span className="text-white text-lg font-bold tracking-tight">바이브코딩 스튜디오</span>
+                            
+                            {/* 제품 선택 탭 */}
+                            <div className="ml-6 flex bg-[#222] p-1 rounded-lg">
+                                <button 
+                                    onClick={() => setProduct('ponybot')}
+                                    className={`px-4 py-1.5 text-xs font-bold rounded-md transition-all ${product === 'ponybot' ? 'bg-white text-black shadow-sm' : 'text-[#999] hover:text-white'}`}
+                                >
+                                    🤖 AI 포니봇
+                                </button>
+                                <button 
+                                    onClick={() => setProduct('vibelamp')}
+                                    className={`px-4 py-1.5 text-xs font-bold rounded-md transition-all ${product === 'vibelamp' ? 'bg-white text-black shadow-sm' : 'text-[#999] hover:text-white'}`}
+                                >
+                                    💡 바이브램프
+                                </button>
+                            </div>
                         </div>
+                        
                         <div className="flex items-center gap-4">
                             <button 
                                 onClick={() => setShowSettings(!showSettings)} 
@@ -402,7 +480,7 @@ RULES:
                             >
                                 <i className="fa-solid fa-gear text-lg"></i>
                             </button>
-                            <a href="https://boundaryx.io/shop/?idx=26" target="_blank" rel="noreferrer" className="flex items-center gap-2 text-white border border-white px-4 py-1.5 rounded-full text-xs font-bold hover:bg-white hover:text-black transition-all">
+                            <a href="https://boundaryx.io/shop" target="_blank" rel="noreferrer" className="flex items-center gap-2 text-white border border-white px-4 py-1.5 rounded-full text-xs font-bold hover:bg-white hover:text-black transition-all">
                                 <span>제품 정보</span>
                                 <i className="fa-solid fa-arrow-up-right-from-square"></i>
                             </a>
@@ -435,7 +513,7 @@ RULES:
                     </header>
 
                     <main className="flex flex-1 overflow-hidden relative bg-[#F8F9FA]">
-                        <div className="w-[380px] flex flex-col border-r border-[#D1D5DB] bg-white relative z-10 shadow-sm">
+                        <div className="w-[420px] flex flex-col border-r border-[#D1D5DB] bg-white relative z-10 shadow-sm">
                             <div className="flex-1 overflow-y-auto p-5 space-y-5 scrollbar-hide bg-white">
                                 {messages.map((msg, idx) => (
                                     <div key={idx} className={`flex ${msg.role === 'user' ? 'justify-end' : 'justify-start'} animate-fade-in`}>
@@ -462,37 +540,34 @@ RULES:
                                 <div ref={messagesEndRef} />
                             </div>
 
-                            <div className="p-5 bg-white border-t border-[#D1D5DB]">
+                            <div className="p-4 bg-white border-t border-[#D1D5DB]">
+                                {/* 작업 모드 드롭다운 */}
+                                <div className="mb-2 flex items-center">
+                                    <select 
+                                        value={promptMode} 
+                                        onChange={(e) => setPromptMode(e.target.value)}
+                                        className="bg-[#F8F9FA] border border-[#D1D5DB] text-[#111] text-xs font-bold rounded-lg focus:ring-black focus:border-black block w-full p-2 outline-none cursor-pointer hover:bg-[#F1F3F4] transition-colors"
+                                    >
+                                        <option value="new">✨ 새로 코드 작성하기 (기존 무시)</option>
+                                        <option value="improve">🛠️ 오른쪽 코드 개선하기 (기능 추가/수정)</option>
+                                        <option value="fix">🐛 오른쪽 코드 에러 해결하기</option>
+                                    </select>
+                                </div>
+                                
                                 <div className="relative shadow-sm rounded-2xl">
                                     <textarea
                                         value={input}
                                         onChange={(e) => setInput(e.target.value)}
                                         onKeyDown={handleKeyDown}
-                                        placeholder="포니봇에게 시킬 일을 설명하세요..."
-                                        className="w-full bg-[#F8F9FA] text-[#111] p-4 pr-32 rounded-2xl border border-[#D1D5DB] focus:ring-1 focus:ring-black focus:border-black outline-none resize-none h-[100px] scrollbar-hide text-[0.95rem] transition-all placeholder:text-[#999]"
+                                        placeholder={getPlaceholder()}
+                                        className="w-full bg-[#F8F9FA] text-[#111] p-4 pr-16 rounded-2xl border border-[#D1D5DB] focus:ring-1 focus:ring-black focus:border-black outline-none resize-none h-[100px] scrollbar-hide text-[0.9rem] transition-all placeholder:text-[#999]"
                                     ></textarea>
                                     
                                     <div className="absolute right-3 top-3 flex gap-2">
-                                        <button
-                                            onClick={handleSuggestIdea}
-                                            disabled={isLoading || isThinkingIdea}
-                                            title="아이디어 추천 ✨"
-                                            className="w-9 h-9 flex items-center justify-center bg-white text-[#6B21A8] rounded-full hover:bg-[#F3E8FF] disabled:opacity-50 transition-colors border border-[#E9D5FF] shadow-sm"
-                                        >
-                                            {isThinkingIdea ? <div className="w-4 h-4 border-2 border-[#6B21A8] border-t-transparent rounded-full animate-spin"/> : <i className="fa-solid fa-wand-magic-sparkles"></i>}
-                                        </button>
-                                        <button
-                                            onClick={handleRefinePrompt}
-                                            disabled={isLoading || isRefining || !input.trim()}
-                                            title="프롬프트 마법사: 더 구체적으로 다듬기 🪄"
-                                            className="w-9 h-9 flex items-center justify-center bg-white text-[#EA4335] rounded-full hover:bg-[#FFF5F5] disabled:opacity-50 transition-colors border border-[#FECACA] shadow-sm"
-                                        >
-                                            {isRefining ? <div className="w-4 h-4 border-2 border-[#EA4335] border-t-transparent rounded-full animate-spin"/> : <i className="fa-solid fa-wand-magic"></i>}
-                                        </button>
                                         <button 
                                             onClick={generateCode}
                                             disabled={isLoading}
-                                            title="코드 생성하기"
+                                            title="전송하기"
                                             className="w-9 h-9 flex items-center justify-center bg-black text-white rounded-full hover:bg-[#333] disabled:opacity-50 transition-colors shadow-md"
                                         >
                                             <i className="fa-solid fa-paper-plane"></i>
@@ -510,7 +585,7 @@ RULES:
                                     </div>
                                     <div>
                                         <div className="text-sm font-bold text-[#111]">main.js</div>
-                                        <div className="text-[10px] text-[#666] font-medium">MakeCode JavaScript</div>
+                                        <div className="text-[10px] text-[#666] font-medium">MakeCode JavaScript ({product === 'ponybot' ? '포니봇' : '바이브램프'})</div>
                                     </div>
                                 </div>
                                 <div className="flex items-center gap-3">
@@ -526,9 +601,10 @@ RULES:
                                     <button 
                                         onClick={() => {
                                             setGeneratedCode("// 초기화됨");
-                                            setMessages([{ role: 'assistant', text: '코드가 초기화되었습니다.' }]);
+                                            setMessages([{ role: 'assistant', text: '코드가 초기화되었습니다. 새로운 코드를 작성해보세요!' }]);
                                             setExplanationText("");
                                             setShowExplanation(false);
+                                            setPromptMode('new');
                                         }}
                                         className="flex items-center gap-2 px-4 py-2 bx-pill-btn bx-btn-danger-outline text-xs"
                                     >
