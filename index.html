@@ -73,6 +73,9 @@
     <div id="root"></div>
 
     <script type="text/babel">
+        /** @jsx React.createElement */
+        /** @jsxFrag React.Fragment */
+        
         const { useState, useEffect, useRef } = React;
 
         // =========================================================================
@@ -372,7 +375,7 @@ RULES:
 3. **BLOCK CONVERSION RULE (CRITICAL FOR MAKECODE):**
    - MakeCode block editor fails to convert 'let' inside loops.
    - You MUST declare variables globally at the top of the code.
-   - [🚨 CRITICAL WARNING] ONLY DECLARE VARIABLES THAT ARE ACTUALLY USED IN YOUR LOGIC. DO NOT DECLARE ANY UNUSED VARIABLES.
+   - [🚨 FATAL RULE] DO NOT pre-declare or initialize variables (like distance, color RGB, face data, x, y, etc.) UNLESS the user explicitly asks for logic requiring those specific sensors. For example, if the user only asks to "turn on LED", DO NOT declare \`distance\`, \`red\`, \`faceX\`, etc.
    - Inside \`basic.forever\`, ONLY assign values.
 4. **STARTUP / TOP-LEVEL CODE:** - Do NOT use \`basic.onStart()\`. In MakeCode, code written at the top-level acts as the "on start" block.
    - Place all initialization code directly at the top level of the file.
