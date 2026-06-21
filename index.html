@@ -363,7 +363,8 @@ ${extensionSrc}
 \`\`\`
 
 RULES:
-1. **STRICT COMPLIANCE:** Use ONLY the functions defined above for the robot's specific features.
+1. **STRICT COMPLIANCE & NAMESPACES:** - Use ONLY the functions defined above for the robot's specific features.
+   - [🚨 CRITICAL ENUM PREFIX] You MUST strictly prefix ALL custom enums with their namespace. For example, ALWAYS use \`aiPonybot.PingUnit.Centimeters\` (NEVER \`PingUnit.Centimeters\`). This strictly applies to all enums including \`Mecanum\`, \`DirectionControl\`, \`Motor\`, \`Servo\`, etc.
 2. **ALLOWANCE FOR BUILT-IN NAMESPACES:** You are FULLY AUTHORIZED and EXPECTED to use ALL standard BBC Micro:bit MakeCode built-in namespaces (v1 and v2 compatible) whenever necessary. This explicitly includes: \`basic\`, \`input\`, \`music\`, \`led\`, \`pins\`, \`radio\`, \`Math\`, \`control\`, and \`serial\`.
 3. **LIGHT/NEOPIXEL USAGE:** - [CRITICAL] ONLY IF NeoPixels/Lights are needed, you MUST declare and initialize the strip variable at the top level:
    ${initRule}
