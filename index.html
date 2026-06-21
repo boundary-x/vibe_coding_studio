@@ -336,8 +336,8 @@ declare namespace vibeLamp {
                 
                 // 2. 라이트 초기화 코드
                 const initRule = isPonybot 
-                    ? `\`let strip = null;\`\n   - Initialize it ONCE at the top level: \`strip = neopixel.create(DigitalPin.P8, 4, NeoPixelMode.RGB)\``
-                    : `\`let strip = null;\`\n   - Initialize it ONCE at the top level: \`strip = vibeLamp.create(DigitalPin.P8, 12, NeoPixelMode.RGB)\``;
+                    ? `- [🚨 CRITICAL] Initialize it ONCE at the top level exactly like this: \`let strip = neopixel.create(DigitalPin.P8, 4, NeoPixelMode.RGB)\``
+                    : `- [🚨 CRITICAL] Initialize it ONCE at the top level exactly like this: \`let strip = vibeLamp.create(DigitalPin.P8, 12, NeoPixelMode.RGB)\``;
                 
                 // 3. 색상 강제 규칙
                 const colorRule = isPonybot
@@ -365,9 +365,9 @@ ${extensionSrc}
 RULES:
 1. **STRICT COMPLIANCE:** Use ONLY the functions defined above for the robot's specific features.
 2. **ALLOWANCE FOR BUILT-IN NAMESPACES:** You are FULLY AUTHORIZED and EXPECTED to use ALL standard BBC Micro:bit MakeCode built-in namespaces (v1 and v2 compatible) whenever necessary. This explicitly includes: \`basic\`, \`input\`, \`music\`, \`led\`, \`pins\`, \`radio\`, \`Math\`, \`control\`, and \`serial\`.
-3. **LIGHT/NEOPIXEL USAGE:** 
-   - [CRITICAL] ONLY IF NeoPixels/Lights are needed, you MUST declare the strip variable at the top level:
+3. **LIGHT/NEOPIXEL USAGE:** - [CRITICAL] ONLY IF NeoPixels/Lights are needed, you MUST declare and initialize the strip variable at the top level:
    ${initRule}
+   - [🚨 CRITICAL] If you set the brightness, you MUST set it to 255 by default (e.g., \`strip.setBrightness(255)\`) unless the user asks for a different value.
    - Notice that \`NeoPixelMode\` and \`NeoPixelColors\` are GLOBAL enums.
    ${colorRule}
 4. **BLOCK CONVERSION RULE (CRITICAL FOR MAKECODE):**
