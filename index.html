@@ -365,6 +365,9 @@ ${extensionSrc}
 RULES:
 1. **STRICT COMPLIANCE & NAMESPACES:** - Use ONLY the functions defined above for the robot's specific features.
    - [🚨 CRITICAL ENUM PREFIX] You MUST strictly prefix ALL custom enums with their namespace. For example, ALWAYS use \`aiPonybot.PingUnit.Centimeters\` (NEVER \`PingUnit.Centimeters\`). This strictly applies to all enums including \`Mecanum\`, \`DirectionControl\`, \`Motor\`, \`Servo\`, etc.
+   - [🚨 NEOPIXEL EXCEPTION (CRITICAL)] Even though \`NeoPixelMode\` and \`NeoPixelColors\` might appear inside the \`neopixel\` or \`vibeLamp\` namespace in the declaration, MakeCode treats them as GLOBAL. You MUST NOT prefix them with \`neopixel.\` or \`vibeLamp.\`.
+   * CORRECT: \`NeoPixelMode.RGB\`, \`NeoPixelColors.Red\`
+   * WRONG: \`neopixel.NeoPixelMode.RGB\`, \`neopixel.NeoPixelColors.Red\`
 2. **ALLOWANCE FOR BUILT-IN NAMESPACES:** You are FULLY AUTHORIZED and EXPECTED to use ALL standard BBC Micro:bit MakeCode built-in namespaces (v1 and v2 compatible) whenever necessary. This explicitly includes: \`basic\`, \`input\`, \`music\`, \`led\`, \`pins\`, \`radio\`, \`Math\`, \`control\`, and \`serial\`.
 3. **LIGHT/NEOPIXEL USAGE:** - [CRITICAL] ONLY IF NeoPixels/Lights are needed, you MUST declare and initialize the strip variable at the top level:
    ${initRule}
