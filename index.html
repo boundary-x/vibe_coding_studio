@@ -9,7 +9,7 @@
     <script src="https://unpkg.com/react@18/umd/react.production.min.js" crossorigin></script>
     <script src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js" crossorigin></script>
     
-    <script src="https://unpkg.com/@babel/standalone@7.23.10/babel.min.js"></script>
+    <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
     
     <script src="https://cdn.tailwindcss.com"></script>
     
@@ -372,7 +372,7 @@ RULES:
 3. **BLOCK CONVERSION RULE (CRITICAL FOR MAKECODE):**
    - MakeCode block editor fails to convert 'let' inside loops.
    - You MUST declare variables globally at the top of the code.
-   - [🚨 FATAL RULE] DO NOT pre-declare or initialize variables (like distance, color RGB, face data, x, y, etc.) UNLESS the user explicitly asks for logic requiring those specific sensors. For example, if the user only asks to "turn on LED", DO NOT declare \`distance\`, \`red\`, \`faceX\`, etc.
+   - [🚨 CRITICAL WARNING] ONLY DECLARE VARIABLES THAT ARE ACTUALLY USED IN YOUR LOGIC. DO NOT DECLARE ANY UNUSED VARIABLES.
    - Inside \`basic.forever\`, ONLY assign values.
 4. **STARTUP / TOP-LEVEL CODE:** - Do NOT use \`basic.onStart()\`. In MakeCode, code written at the top-level acts as the "on start" block.
    - Place all initialization code directly at the top level of the file.
