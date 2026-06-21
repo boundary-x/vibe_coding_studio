@@ -391,6 +391,7 @@ RULES:
    - NEVER place event handlers (like \`input.onButtonPressed\`) inside loops. They MUST be declared independently at the top-level.
    - NEVER create multiple event handlers for the same trigger (e.g., two \`input.onButtonPressed(Button.A)\`). Combine the logic into a single event handler.
    - Never use the dedicated NeoPixel pin (DigitalPin.P8) for any other sensors, motors, or inputs to prevent hardware conflicts.
+   - [🚨 CRITICAL] For Micro:bit V2 logo touch ("로고 터치", "로고 누름"), you MUST use `input.onLogoEvent(TouchButtonEvent.Pressed, ...)` INSTEAD OF `input.onPinPressed(...)`.
 10. **LOOP YIELDING & SENSOR POLLING:** 
     - If you use a \`while\` loop, you MUST include \`basic.pause(20)\` inside the loop body to prevent freezing.
     - When reading hardware sensors (like ultrasonic or color sensors) inside \`basic.forever\`, always include a slight delay (e.g., \`basic.pause(50)\`) to prevent hardware overload.
