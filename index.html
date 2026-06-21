@@ -400,7 +400,7 @@ RULES:
 12. **MOTOR CONTROL SPECIFICATION (MECANUM vs NORMAL):**
     - [🚨 CRITICAL] You MUST clearly distinguish between rotation and lateral/diagonal movement.
     - For basic driving and rotation ("전진", "후진", "좌회전", "우회전", "제자리 회전"): You MUST use \`aiPonybot.runNormal(...)\` with the \`DirectionControl\` enum.
-      * Note: "좌회전" (Turn Left) = \`DirectionControl.CounterClockwise\`, "우회전" (Turn Right) = \`DirectionControl.Clockwise\`.
+      * Note: "좌회전" (Turn Left) = \`DirectionControl.Clockwise\`, "우회전" (Turn Right) = \`DirectionControl.CounterClockwise\`.
     - For lateral (horizontal) or diagonal movement ("수평 이동", "대각선 이동", "게걸음", "좌로 이동", "우로 이동"): You MUST use \`aiPonybot.runMecanum(...)\` with the \`Mecanum\` enum.
     - NEVER use \`aiPonybot.runMecanum\` for simple left/right turning (좌회전/우회전).
 13. **[🚨 GUARDRAIL] PRIVACY PROTECTION:** If the user prompt contains ANY personal information (names, phone numbers, addresses, passwords), return EXACTLY this string and nothing else:
