@@ -171,12 +171,39 @@ declare namespace neopixel {
         // =========================================================================
         const VIBELAMP_EXTENSION = `
 declare enum DigitalPin { P0, P1, P2, P3, P4, P5, P6, P7, P8, P9, P10, P11, P12, P13, P14, P15, P16 }
-declare enum NeoPixelColors { Red = 0xFF0000, Orange = 0xFFA500, Yellow = 0xFFFF00, Green = 0x00FF00, Blue = 0x0000FF, Indigo = 0x000080, Violet = 0x8a2be2, White = 0xFFFFFF, Black = 0x000000 }
-declare enum NeoPixelMode { RGB = 1, RGBW = 2, RGB_RGB = 3 }
+enum NeoPixelColors {
+    Red = 0xFF0000,
+    Orange = 0xFFA500,
+    Yellow = 0xFFFF00,
+    Green = 0x00FF00,
+    Blue = 0x0000FF,
+    Indigo = 0x000080,
+    Violet = 0x8a2be2,
+    White = 0xFFFFFF,
+    Black = 0x000000
+}
 
-declare namespace vibeLamp {
-    enum HueInterpolationDirection { Clockwise, CounterClockwise, Shortest }
-    class Strip {
+enum NeoPixelMode {
+    RGB = 1,
+    RGBW = 2,
+    RGB_RGB = 3
+}
+
+namespace vibeLamp {
+    function sendBuffer(buf: Buffer, pin: DigitalPin): void;
+
+    export class Strip {
+        buffer: Buffer;
+        pin: DigitalPin;
+        brightness: number;
+        start: number;
+        _length: number;
+        mode: NeoPixelMode;
+        matrixWidth: number;
+        matrixChain: number;
+        matrixRotation: number;
+        _isShowing: boolean;
+
         showColor(rgb: number): void;
         clear(): void;
         setBrightness(brightness: number): void;
@@ -192,35 +219,37 @@ declare namespace vibeLamp {
         setMatrixColor(x: number, y: number, rgb: number): void;
         setPin(pin: DigitalPin): void;
     }
-    function create(pin: DigitalPin, numLeds: number, mode: NeoPixelMode): Strip;
-    function rgb(red: number, green: number, blue: number): number;
-    function pickColor(color: number): number;
-    function colors(color: NeoPixelColors): number;
-    function hsl(hue: number, saturation: number, luminance: number): number;
 
-    enum UARTDataType { X, Y, W, H, D }
-    enum ColorDataType { R, G, B, I }
-    enum ReturnFormat { String, Number }
-    enum FaceDataType { X, Y, Z, Yaw, Pitch, Mouth, LeftEye, RightEye, Roll, Smile, Visible }
-    enum HandDataType { LeftDir, LeftSpeed, RightDir, RightSpeed }
+    export function create(pin: DigitalPin, numLeds: number, mode: NeoPixelMode): Strip;
+    export function rgb(red: number, green: number, blue: number): number;
+    export function pickColor(color: number): number;
+    export function colors(color: NeoPixelColors): number;
+    export function hsl(hue: number, saturation: number, luminance: number): number;
 
-    function parseUARTUnified(data: string, type: UARTDataType, format: ReturnFormat): any;
-    function parseColorUnified(data: string, color: ColorDataType, format: ReturnFormat): any;
-    function parseFaceUnified(data: string, type: FaceDataType): number;
-    function parseHandPoseUnified(data: string, type: HandDataType, format: ReturnFormat): any;
+    export enum UARTDataType { X, Y, W, H, D }
+    export enum ColorDataType { R, G, B, I }
+    export enum ReturnFormat { String, Number }
+    export enum FaceDataType { X, Y, Z, Yaw, Pitch, Mouth, LeftEye, RightEye, Roll, Smile, Visible }
+    export enum HandDataType { LeftDir, LeftSpeed, RightDir, RightSpeed }
 
-    enum Display { On = 1, Off = 0 }
-    function invert(on?: boolean): void;
-    function clear(): void;
-    function display(on: boolean): void;
-    function pixel(x: number, y: number, color?: number): void;
-    function showString(text: string, column: number, row: number, color?: number): void;
-    function showNumber(number: number, column: number, row: number, color?: number): void;
-    function printString(text: string, newline?: boolean): void;
-    function printNumber(number: number, newline?: boolean): void;
-    function horizontalLine(x: number, y: number, length: number, color?: number): void;
-    function verticalLine(x: number, y: number, length: number, color?: number): void;
-    function rectangle(x1: number, y1: number, x2: number, y2: number, color?: number): void;
+    export function parseUARTUnified(data: string, type: UARTDataType, format: ReturnFormat): any;
+    export function parseColorUnified(data: string, color: ColorDataType, format: ReturnFormat): any;
+    export function parseFaceUnified(data: string, type: FaceDataType): number;
+    export function parseHandPoseUnified(data: string, type: HandDataType, format: ReturnFormat): any;
+
+    export enum Display { On = 1, Off = 0 }
+    
+    export function invert(on?: boolean): void;
+    export function clear(): void;
+    export function display(on: boolean): void;
+    export function pixel(x: number, y: number, color?: number): void;
+    export function showString(text: string, column: number, row: number, color?: number): void;
+    export function showNumber(number: number, column: number, row: number, color?: number): void;
+    export function printString(text: string, newline?: boolean): void;
+    export function printNumber(number: number, newline?: boolean): void;
+    export function horizontalLine(x: number, y: number, length: number, color?: number): void;
+    export function verticalLine(x: number, y: number, length: number, color?: number): void;
+    export function rectangle(x1: number, y1: number, x2: number, y2: number, color?: number): void;
 }
 `;
 
