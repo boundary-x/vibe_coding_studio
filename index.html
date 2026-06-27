@@ -382,8 +382,13 @@ namespace vibeLamp {
                 // 5. 메모리 최적화 및 070 에러 방어 규칙 (바이브램프 전용 분기)
                 const memoryRule = isPonybot
                     ? `11. **DATA TYPE & PARSING:**\n    - MakeCode is statically typed. Never change a variable's data type after initialization.\n    - When handling UART or serial communication data (e.g., \`parseUARTUnified\`), always ensure to check if the string is not empty before parsing.`
-                    : `11. **[🚨 CRITICAL] HARDWARE MEMORY & 070 ERROR PREVENTION (VIBE LAMP ONLY):**\n    - [BT + NEOPIXEL INIT] If using BOTH Bluetooth (\`bluetooth\`) and NeoPixels, you MUST initialize them at the top level in this EXACT order: 1) \`bluetooth.startUartService()\`, 2) \`basic.pause(500)\`, 3) Initialize the strip (e.g., \`let strip = vibeLamp.create(...)\`).\n    - [NO MUSIC ALLOWED] If NeoPixels are used, you are STRICTLY FORBIDDEN from using any functions from the \`music\` namespace. It causes an immediate 070 memory error.\n    - [UART EVENT DEFERRAL] NEVER call OLED or NeoPixel drawing functions (e.g., \`show()\`, \`showColor()\`, \`rectangle()\`) directly inside \`bluetooth.onUartDataReceived\`. This causes a memory crash. Instead, parse and save the data to global variables inside the event handler, and perform ALL hardware drawing operations inside the \`basic.forever\` loop based on those variables.\n    - [DATA PARSING] When handling UART data, always check if the string is not empty before parsing.`;
-
+                    : `11. **[🚨 CRITICAL] HARDWARE MEMORY & 070 ERROR PREVENTION (VIBE LAMP ONLY):**
+                    - [🚨 3-COMBO BAN] You are STRICTLY FORBIDDEN from using NeoPixel, Bluetooth, and OLED display functions all together in the same program. Using all three causes a 070 memory crash. You may use (NeoPixel + Bluetooth) OR (OLED + Bluetooth), but NEVER all three. If the user explicitly asks to use all three, DO NOT write the code. Instead, return EXACTLY this string and nothing else:
+                    // ⚠️ 마이크로비트 메모리 한계(070 에러)로 인해 네오픽셀, 블루투스, OLED를 동시에 사용할 수 없어요. 두 가지만 선택해주세요.
+                    - [BT + NEOPIXEL INIT] If using BOTH Bluetooth (\`bluetooth\`) and NeoPixels, you MUST initialize them at the top level in this EXACT order: 1) \`bluetooth.startUartService()\`, 2) \`basic.pause(500)\`, 3) Initialize the strip.
+                    - [NO MUSIC ALLOWED] If Bluetooth (\`bluetooth\`) is used, you are STRICTLY FORBIDDEN from using any functions from the \`music\` namespace.
+                    - [UART EVENT DEFERRAL] NEVER call OLED or NeoPixel drawing functions directly inside \`bluetooth.onUartDataReceived\`. Parse and save data to global variables, and draw inside \`basic.forever\`.
+                    - [DATA PARSING] When handling UART data, always check if the string is not empty before parsing.`;
                 const systemPrompt = `
 You are an expert MakeCode JavaScript/TypeScript programmer for the "${robotName}" based on BBC Micro:bit V2.
 Your ONLY goal is to write complete, runnable code for the BBC Micro:bit V2 based on the user's request.
