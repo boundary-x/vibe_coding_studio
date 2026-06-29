@@ -254,9 +254,9 @@ namespace vibeLamp {
 `;
 
         const MODELS = [
+            "gemini-2.5-flash",
             "gemini-3.5-flash",
-            "gemini-3.1-flash-lite",
-            "gemini-2.5-flash"
+            "gemini-3.1-flash-lite"
         ];
 
         const App = () => {
@@ -414,10 +414,10 @@ RULES:
    - [🚨 CRITICAL] If you set the brightness, you MUST set it to 255 by default (e.g., \`strip.setBrightness(255)\`).
    ${colorRule}
 4. **BLOCK CONVERSION RULE (CRITICAL FOR MAKECODE):**
-   - MakeCode block editor fails to convert 'let' inside loops.
-   - You MUST declare variables globally at the top of the code.
-   - Inside \`basic.forever\`, ONLY assign values.
-   - [🚨 CRITICAL] You MUST use Type Inference for variable declarations. NEVER use explicit type annotations. Example: Use \`let distance = 0\` INSTEAD OF \`let distance: number = 0\`.
+   - [🚨 STRICT 'let' PLACEMENT] To prevent grey unparsed blocks, ALL \`let\` variable declarations MUST be grouped together at the ABSOLUTE TOP of the file, BEFORE any execution code or function calls (like \`vibeLamp.create\`, \`strip.setBrightness\`). NEVER mix \`let\` declarations with execution commands.
+   - [🚨 NO LOCAL 'let'] You are STRICTLY FORBIDDEN from using the \`let\` keyword inside ANY loop (\`basic.forever\`), event handler (\`bluetooth...\`), or \`if\` statement. ONLY reassign existing variables (e.g., \`distance = 10\`, NEVER \`let distance = 10\`).
+   - [🚨 MUST INITIALIZE] You MUST initialize variables with a value upon declaration (e.g., \`let x = 0;\`, \`let s = "";\`). NEVER write just \`let x;\`.
+   - [🚨 NO TYPE ANNOTATIONS & MUTATION] NEVER use explicit type annotations (e.g., \`: number\`). Use Type Inference (e.g., \`let dist = 0\`). MakeCode is statically typed, so NEVER change a variable's data type after initialization.
 5. **STARTUP / TOP-LEVEL CODE:** - Do NOT use \`basic.onStart()\`. In MakeCode, code written at the top-level acts as the "on start" block.
    - Place all initialization code directly at the top level of the file.
 6. **OUTPUT FORMAT & EDUCATION:** - Output a friendly and encouraging explanation (2~3 sentences in Korean) FIRST. Briefly explain HOW the coding logic connects to the physical robot hardware.
