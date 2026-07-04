@@ -607,15 +607,15 @@ ${memoryRule}
                         {showSettings && (
                             <div className="absolute top-16 right-6 p-5 bg-white rounded-2xl shadow-2xl border border-[#D1D5DB] z-[100] w-80 animate-fade-in text-[#111]">
                                 <div className="flex justify-between items-center mb-2">
-                                    <h3 className="text-sm font-bold"><i className="fa-solid fa-key text-[#EA4335] mr-2"></i>접속키 설정</h3>
+                                    <h3 className="text-sm font-bold"><i className="fa-solid fa-key text-[#EA4335] mr-2"></i>접속키(API Key) 설정</h3>
                                     <button onClick={() => setShowSettings(false)} className="text-[#999] hover:text-black transition-colors">
                                         <i className="fa-solid fa-xmark text-lg"></i>
                                     </button>
                                 </div>
-                                <p className="text-xs text-[#666] mb-4">선생님께 안내받은 수업용 '접속키'를 입력해주세요.</p>
+                                <p className="text-xs text-[#666] mb-4">선생님께 안내받은 수업용 '접속키(API Key)'를 입력해주세요.</p>
                                 <input 
                                     type="password" 
-                                    placeholder="접속키 입력 (예: class-2026-vibe)" 
+                                    placeholder="접속키를 입력해주세요!" 
                                     value={accessKey}
                                     onChange={(e) => setAccessKey(e.target.value)}
                                     className="w-full bg-[#F8F9FA] border border-[#D1D5DB] rounded-lg p-2.5 text-sm text-[#111] mb-4 focus:ring-1 focus:ring-black focus:border-black outline-none"
