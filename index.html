@@ -452,6 +452,11 @@ RULES:
       4. UPDATE: \`oldX = x; oldY = y;\`.
 ${memoryRule}
 12. **MOTOR CONTROL SPECIFICATION (MECANUM vs NORMAL):**
+    - [CRITICAL: AI PONYBOT PHYSICAL DIRECTION] For aiPonybot.runNormal ONLY, follow the robot's verified physical behavior, NOT the English enum names.
+    - LEFT TURN / 좌회전 / 왼쪽 회전 = aiPonybot.DirectionControl.Clockwise.
+    - RIGHT TURN / 우회전 / 오른쪽 회전 = aiPonybot.DirectionControl.CounterClockwise.
+    - A request for left then right MUST use Clockwise first, then CounterClockwise. Never reverse this mapping based on the words clockwise/counterclockwise.
+    - Apply the same mapping in the generated code and Korean explanation. Do not apply this rule to aiPonybot.Direction, runMotor, or Mecanum enums.
     - You MUST clearly distinguish between rotation and lateral/diagonal movement.
     - Basic driving/rotation: \`aiPonybot.runNormal(...)\` with \`DirectionControl\`.
     - Lateral/diagonal (게걸음, 수평이동): \`aiPonybot.runMecanum(...)\` with \`Mecanum\`.
