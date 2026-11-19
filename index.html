@@ -291,11 +291,7 @@ namespace vibeLamp {
         // =========================================================================
         const CLOUD_FUNCTION_URL = "https://vibe-coding-proxy-750635720830.asia-northeast3.run.app";
 
-        const MODELS = [
-            "gemini-3.7-flash",
-            "gemini-3.5-flash",
-            "gemini-3.5-flash-lite"
-        ];
+        const CLAUDE_MODEL = 'claude-haiku-5-5';
 
         // MakeCode official renderer: code only; credentials are never sent to this frame.
         const BlockPreview = ({ code, product }) => {
@@ -467,39 +463,23 @@ namespace vibeLamp {
             };
 
             // --- AI Logic (백엔드 프록시 통신으로 변경) ---
-            const callGemini = async (prompt, systemInstruction) => {
-                let lastError = null;
-                for (const model of MODELS) {
-                    try {
-                        const response = await fetch(CLOUD_FUNCTION_URL, {
-                            method: 'POST',
-                            headers: { 
-                                'Content-Type': 'application/json',
-                                'Authorization': `Bearer ${accessKey}` // 접속키를 헤더에 담아서 전송
-                            },
-                            body: JSON.stringify({
-                                prompt: prompt,
-                                systemInstruction: systemInstruction,
-                                model: model
-                            })
-                        });
-
-                        const data = await response.json();
-                        
-                        // 백엔드에서 에러(예: 401 접속키 틀림)를 반환한 경우
-                        if (!response.ok) {
-                            throw new Error(data.error || "통신 오류가 발생했습니다.");
-                        }
-                        
-                        return data.result || "";
-                    } catch (err) {
-                        lastError = err;
-                        console.warn(`[${model}] Request failed:`, err);
-                        // 인증 에러(접속키 오류 등)일 경우 모델 순회를 멈추고 바로 에러를 띄웁니다.
-                        if (err.message.includes("접속키")) break; 
+            const callAI = async (prompt, systemInstruction) => {
+                try {
+                    const response = await fetch(CLOUD_FUNCTION_URL, {
+                        method: 'POST',
+                        signal: AbortSignal.timeout(135000),
+                        headers: { 'Content-Type': 'application/json', Authorization: 'Bearer ' + accessKey },
+                        body: JSON.stringify({ prompt, systemInstruction, provider: 'claude', model: CLAUDE_MODEL })
+                    });
+                    const data = await response.json();
+                    if (!response.ok) throw new Error(data.error || '서버 요청에 실패했습니다.');
+                    if (data.provider !== 'claude' || data.model !== CLAUDE_MODEL || typeof data.result !== 'string') {
+                        throw new Error('Claude 응답 경로를 확인하지 못했습니다. 서버 배포 상태를 확인해주세요.');
                     }
+                    return data.result;
+                } catch (error) {
+                    throw new Error(error.name === 'TimeoutError' ? '응답 시간이 초과되었습니다. 잠시 후 다시 시도해주세요.' : error.message);
                 }
-                throw new Error("AI 호출에 실패했습니다.\n사유: " + lastError?.message);
             };
 
             const generateCode = async () => {
@@ -629,7 +609,7 @@ ${memoryRule}
                 }
 
                 try {
-                    const aiCodeRaw = await callGemini(finalQuery, systemPrompt);
+                    const aiCodeRaw = await callAI(finalQuery, systemPrompt);
 
                     // 가드레일(개인정보, 잡담) 방어 처리
                     if (aiCodeRaw.includes('⚠️')) {
@@ -689,8 +669,8 @@ ${memoryRule}
                     return;
                 }
                 try {
-                    const systemPrompt = "Explain this MakeCode program to a beginner in Korean. Describe ONLY executable blocks actually used in this code, in their execution order. Output only a concise numbered list: usually 3–6 steps, at most 8. Each step is one short sentence; combine closely related actions. Do not add an introduction, glossary, conclusion, or mention concepts absent from the code. An anonymous event callback is NOT a user-defined function block: mention functions only when a named function is declared/called. Ignore commented-out code as behavior; do not invent initialization or actions. State the trigger, actual conditions, repeat counts, motor direction and duration when present. Convert milliseconds to seconds. A pause waits while the previous motor/light state continues; it does not itself stop motors. For Ponybot runNormal ONLY, Clockwise means left and CounterClockwise means right. Use Korean block concepts instead of JavaScript syntax or English enum names. You have source code, not an image: do not claim to see positions/colors, exact labels, successful conversion or actual hardware operation. If code is invalid, briefly identify the issue rather than confidently explaining intended behavior. Plain numbered text preferred; no Markdown headings.";
-                    const explanation = await callGemini(generatedCode, systemPrompt);
+                    const systemPrompt = "Explain this MakeCode program to a beginner in Korean. Describe ONLY executable blocks actually used in this code, in their execution order. Output only a concise numbered list: usually 3–6 steps, at most 8. Each step is one short sentence; combine closely related actions. Do not add an introduction, glossary, conclusion, or mention concepts absent from the code. An anonymous event callback is NOT a user-defined function block: mention functions only when a named function is declared/called. Ignore commented-out code as behavior; do not invent initialization or actions. State the trigger, actual conditions, repeat counts, motor direction and duration when present. Convert milliseconds to seconds. A pause waits while the previous motor/light state continues; it does not itself stop motors. For Ponybot runNormal ONLY, Clockwise means left and CounterClockwise means right. These enum names are misleading: never describe them as 시계 방향 or 반시계 방향, and never add a clockwise/counterclockwise parenthesis. Say only 좌회전/왼쪽 or 우회전/오른쪽 for these robot actions. Use Korean block concepts instead of JavaScript syntax or English enum names. You have source code, not an image: do not claim to see positions/colors, exact labels, successful conversion or actual hardware operation. If code is invalid, briefly identify the issue rather than confidently explaining intended behavior. Plain numbered text preferred; no Markdown headings.";
+                    const explanation = await callAI(generatedCode, systemPrompt);
                     setExplanationText(explanation);
                 } catch (error) {
                     setExplanationText(`설명을 가져오지 못했습니다: ${error.message}`);
@@ -771,9 +751,14 @@ ${memoryRule}
                                         <i className="fa-solid fa-xmark text-lg"></i>
                                     </button>
                                 </div>
-                                <p className="text-xs text-[#666] mb-4">선생님께 안내받은 수업용 '접속키(API Key)'를 입력해주세요.</p>
+                                <p className="text-xs text-[#666] mb-4">선생님께 안내받은 수업용 접속키를 입력해주세요. 영문 대소문자와 한/영 입력 상태를 확인하세요.</p>
                                 <input 
-                                    type="password" 
+                                    type="text"
+                                    autoCapitalize="none"
+                                    autoCorrect="off"
+                                    autoComplete="off"
+                                    spellCheck={false}
+                                    aria-label="수업용 접속키" 
                                     placeholder="접속키를 입력해주세요!" 
                                     value={accessKey}
                                     onChange={(e) => setAccessKey(e.target.value)}
