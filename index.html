@@ -67,7 +67,39 @@
             border-color: #EA4335;
         }
         ::selection { background: #000; color: #fff; }
-    </style>
+    /* Block explanation: preserve readable space on side panels and mobile. */
+#root .studio-main,#root .studio-workspace,#root .studio-content,#root .explanation-panel {min-width:0;min-height:0}
+#root .chat-pane {width:clamp(280px,30vw,380px);flex-shrink:0}
+#root .studio-toolbar {height:auto;min-height:64px;gap:12px;flex-wrap:wrap;padding:12px 20px}
+#root .studio-toolbar button {white-space:nowrap;flex-shrink:0}
+#root .explanation-text {overflow-wrap:anywhere}
+#root .explanation-text code {background:#f1f3f4;border-radius:4px;padding:1px 4px;font-size:.9em}
+@media(max-width:1100px) {
+ #root .studio-main.is-explaining .chat-pane,#root .studio-main.is-explaining .code-editor {display:none}
+ #root .studio-main.is-explaining .explanation-panel {width:100%}
+ #root .studio-content {padding:16px;gap:16px}
+ #root .studio-header {gap:12px;flex-wrap:wrap}
+ #root .studio-brand {flex-wrap:wrap;gap:10px}
+ #root .studio-products {margin-left:0}
+ #root .studio-footer {padding:10px 16px}
+ #root .studio-footer > div:last-child {display:none}
+}
+@media(max-width:640px) {
+ #root .studio-main {flex-direction:column}
+ #root .chat-pane {width:100%;height:42%;border-right:0;border-bottom:1px solid #d1d5db}
+ #root .studio-main.is-explaining .studio-workspace {height:100%}
+ #root .studio-header {padding:10px 12px}
+ #root .studio-brand > span {font-size:14px}
+ #root .studio-brand img {height:20px}
+ #root .studio-toolbar {padding:10px 12px}
+ #root .studio-toolbar > div:last-child {gap:8px;flex-wrap:wrap}
+ #root .studio-toolbar button {padding:8px 10px;width:auto}
+ #root .studio-content {padding:10px}
+ #root .studio-footer {display:none}
+}
+
+
+</style>
 </head>
 <body class="overflow-hidden">
     <div id="root"></div>
@@ -265,6 +297,124 @@ namespace vibeLamp {
             "gemini-3.5-flash-lite"
         ];
 
+        // MakeCode official renderer: code only; credentials are never sent to this frame.
+        const BlockPreview = ({ code, product }) => {
+            const [result, setResult] = useState({ status: 'loading' });
+            const [attempt, setAttempt] = useState(0);
+            const [fullSize, setFullSize] = useState(false);
+            useEffect(() => {
+                setResult({ status: 'loading' });
+                setFullSize(false);
+                // The renderer may silently choose defaults for malformed syntax.
+                // Babel is already loaded by this app; parse TypeScript before rendering.
+                try {
+                    Babel.transform(code, { filename: 'main.ts', presets: ['typescript'], ast: false, code: false });
+                } catch (error) {
+                    const line = error.loc && error.loc.line;
+                    setResult({ status: 'error', message: (line ? line + '번째 줄에 ' : '') + '코드 문법 오류가 있어 블록 이미지를 만들지 않았어요. 코드를 수정한 뒤 ‘코드 설명’을 다시 눌러주세요.' });
+                    return;
+                }
+                const origin = 'https://makecode.microbit.org';
+                const frame = document.createElement('iframe');
+                const id = 'blocks-' + crypto.randomUUID();
+                let finished = false;
+                let sent = false;
+                let timer;
+                const cleanup = () => {
+                    clearTimeout(timer);
+                    window.removeEventListener('message', receive);
+                    frame.remove();
+                };
+                const finish = (value) => {
+                    if (finished) return;
+                    finished = true;
+                    cleanup();
+                    setResult(value);
+                };
+                const receive = (event) => {
+                    if (event.origin !== origin || event.source !== frame.contentWindow) return;
+                    const msg = event.data;
+                    if (!msg || msg.source !== 'makecode') return;
+                    if (msg.type === 'renderready' && !sent) {
+                        sent = true;
+                        const packages = product === 'ponybot'
+                            ? ['ai-ponybot-basic=github:boundary-x/ai_ponybot_basic#v1.3.1',
+                               'ai-ponybot-light=github:boundary-x/ai_ponybot_light#v1.1.1']
+                            : ['vibelamp=github:boundary-x/vibelamp#v1.4.0'];
+                        // Bluetooth and radio are mutually exclusive on micro:bit.
+                        packages.push(/\bbluetooth\s*\./.test(code) ? 'bluetooth' : 'radio');
+                        if (/\bservos\s*\./.test(code)) packages.push('servo');
+                        frame.contentWindow.postMessage({
+                            type: 'renderblocks', id, code,
+                            options: { package: packages.join(','), snippetMode: false }
+                        }, origin);
+                    }
+                    if (msg.type === 'renderblocks' && msg.id === id) {
+                        if (msg.error || !/^data:image\/(?:png|svg\+xml)[;,]/.test(msg.uri || '')) {
+                            finish({ status: 'error', message: '블록 이미지를 만들지 못했어요. 코드 오류나 지원되지 않는 블록이 있는지 제품별 MakeCode에서 확인해주세요.' });
+                        } else {
+                            finish({ status: 'ready', uri: msg.uri, width: msg.width });
+                        }
+                    }
+                };
+                frame.title = 'MakeCode 블록 이미지 변환기';
+                frame.setAttribute('aria-hidden', 'true');
+                frame.tabIndex = -1;
+                frame.style.cssText = 'position:fixed;left:-10000px;top:0;width:1px;height:1px;border:0';
+                window.addEventListener('message', receive);
+                timer = setTimeout(() => finish({ status: 'error', message: '블록 이미지 변환 시간이 초과됐어요. 인터넷 연결을 확인하고 다시 시도해주세요.' }), 60000);
+                frame.src = origin + '/--docs?render=1&lang=ko';
+                document.body.appendChild(frame);
+                return () => { finished = true; cleanup(); };
+            }, [code, product, attempt]);
+            return (
+                <section className="mb-5 rounded-xl border border-gray-200 bg-gray-50 p-4" aria-label="블록 이미지">
+                    <div className="flex items-center justify-between gap-2 mb-2">
+                        <h3 className="font-bold">블록으로 보기</h3>
+                        {result.status === 'ready' && <button className="text-xs underline" onClick={() => setFullSize(!fullSize)}>{fullSize ? '화면에 맞추기' : '원본 크기로 보기'}</button>}
+                    </div>
+                    {result.status === 'loading' && <p role="status">MakeCode에서 블록 이미지를 만들고 있어요…</p>}
+                    {result.status === 'error' && <div role="status"><p>{result.message}</p><button className="underline mt-2" onClick={() => setAttempt(attempt + 1)}>블록 이미지 다시 만들기</button></div>}
+                    {result.status === 'ready' && <div className="overflow-auto bg-white rounded-lg p-2" style={{maxHeight:'55vh'}}><img src={result.uri} alt="현재 설명 중인 코드의 MakeCode 블록 이미지" style={{width:fullSize ? result.width : '100%', maxWidth:fullSize ? 'none' : result.width, height:'auto'}} /></div>}
+                    <p className="text-xs text-gray-500 mt-2">설명 요청 시점의 미리보기이며 실행 검증 결과는 아니에요. 회색 블록은 JavaScript가 그대로 표시된 부분입니다.</p>
+                </section>
+            );
+        };
+
+        function parseExplanationBlocks(text) {
+            const blocks = [];
+            for (const line of text.split(/\r?\n/)) {
+                const value = line.trim();
+                if (!value || /^[-*_]{3,}$/.test(value)) continue;
+                const match = value.match(/^(\d+[.)]|[-*])\s+(.+)$/);
+                if (match) {
+                    const kind = /^\d/.test(match[1]) ? 'ol' : 'ul';
+                    const last = blocks[blocks.length - 1];
+                    if (last && last.kind === kind) last.items.push(match[2]);
+                    else blocks.push({ kind, start: kind === 'ol' ? parseInt(match[1],10) : undefined, items: [match[2]] });
+                } else {
+                    const heading = value.match(/^#{1,6}\s+(.+)$/);
+                    blocks.push({ kind: heading ? 'heading' : 'paragraph', text: heading ? heading[1] : value });
+                }
+            }
+            return blocks;
+        }
+
+        // Render a small, safe Markdown subset as React nodes (never raw HTML).
+        const ExplanationText = ({ text }) => {
+            const inline = value => value.split(/(\*\*[^*]+\*\*|`[^`]+`|\*[^*]+\*)/g).map((part, i) =>
+                part.startsWith('**') && part.endsWith('**') ? <strong key={i}>{part.slice(2,-2)}</strong> :
+                part.startsWith('`') && part.endsWith('`') ? <code key={i}>{part.slice(1,-1)}</code> :
+                part.startsWith('*') && part.endsWith('*') ? <em key={i}>{part.slice(1,-1)}</em> : part);
+            return <div className="explanation-text">{parseExplanationBlocks(text).map((block,i) => {
+                if (block.kind === 'ol' || block.kind === 'ul') {
+                    const Tag = block.kind;
+                    return <Tag key={i} start={block.start} className={block.kind === 'ol' ? 'list-decimal pl-5 space-y-2 mb-3' : 'list-disc pl-5 space-y-2 mb-3'}>{block.items.map((item,j)=><li key={j}>{inline(item)}</li>)}</Tag>;
+                }
+                return block.kind === 'heading' ? <h4 key={i} className="font-bold mb-2">{inline(block.text)}</h4> : <p key={i} className="mb-3">{inline(block.text)}</p>;
+            })}</div>;
+        };
+
         const App = () => {
             // 접속키 상태 관리로 변경 (apiKey -> accessKey)
             const [accessKey, setAccessKey] = useState('');
@@ -284,6 +434,7 @@ namespace vibeLamp {
             
             const [showExplanation, setShowExplanation] = useState(false);
             const [explanationText, setExplanationText] = useState('');
+            const [explanationSnapshot, setExplanationSnapshot] = useState(null);
             const [isExplaining, setIsExplaining] = useState(false);
 
             const messagesEndRef = useRef(null);
@@ -523,19 +674,22 @@ ${memoryRule}
             };
 
             const handleExplainCode = async () => {
+                if (isLoading || isExplaining) return;
                 if (generatedCode.startsWith('//') && generatedCode.length < 100) return;
-                if (!accessKey) {
-                    setMessages(prev => [...prev, { role: 'system', text: '⚠️ 접속키가 입력되지 않았습니다. 설정에서 접속키를 입력해주세요.' }]);
-                    setShowSettings(true);
-                    return;
-                }
+
 
                 setIsExplaining(true);
                 setShowExplanation(true);
+                setExplanationSnapshot({ code: generatedCode, product, id: crypto.randomUUID() });
                 setExplanationText("코드 선생님이 코드를 분석 중입니다...");
 
+                if (!accessKey) {
+                    setExplanationText('블록 이미지는 접속키 없이 볼 수 있어요. 동작 설명도 보려면 상단 설정에서 접속키를 입력한 뒤 ‘코드 설명’을 다시 눌러주세요.');
+                    setIsExplaining(false);
+                    return;
+                }
                 try {
-                    const systemPrompt = "You are a kind coding tutor. Explain the provided MakeCode JavaScript/TypeScript code to a beginner student in Korean. Break it down step-by-step. Keep it encouraging and easy to understand. Use emojis.";
+                    const systemPrompt = "Explain this MakeCode program to a beginner in Korean. Describe ONLY executable blocks actually used in this code, in their execution order. Output only a concise numbered list: usually 3–6 steps, at most 8. Each step is one short sentence; combine closely related actions. Do not add an introduction, glossary, conclusion, or mention concepts absent from the code. An anonymous event callback is NOT a user-defined function block: mention functions only when a named function is declared/called. Ignore commented-out code as behavior; do not invent initialization or actions. State the trigger, actual conditions, repeat counts, motor direction and duration when present. Convert milliseconds to seconds. A pause waits while the previous motor/light state continues; it does not itself stop motors. For Ponybot runNormal ONLY, Clockwise means left and CounterClockwise means right. Use Korean block concepts instead of JavaScript syntax or English enum names. You have source code, not an image: do not claim to see positions/colors, exact labels, successful conversion or actual hardware operation. If code is invalid, briefly identify the issue rather than confidently explaining intended behavior. Plain numbered text preferred; no Markdown headings.";
                     const explanation = await callGemini(generatedCode, systemPrompt);
                     setExplanationText(explanation);
                 } catch (error) {
@@ -569,8 +723,8 @@ ${memoryRule}
 
             return (
                 <div className="flex flex-col h-screen w-full bg-white text-[#111] overflow-hidden relative">
-                    <header className="flex justify-between items-center bg-black border-b border-[#333] px-6 py-3.5 shrink-0 z-50 shadow-md relative">
-                        <div className="flex items-center gap-3">
+                    <header className="studio-header flex justify-between items-center bg-black border-b border-[#333] px-6 py-3.5 shrink-0 z-50 shadow-md relative">
+                        <div className="studio-brand flex items-center gap-3">
                             <a href="https://boundaryx.io" target="_blank" rel="noreferrer" className="flex items-center transition-opacity hover:opacity-80">
                                 <img src="https://raw.githubusercontent.com/boundary-x/ai_voice_recognition/refs/heads/main/boundaryx_logo.png" alt="Boundary X Logo" className="h-6 w-auto" />
                             </a>
@@ -578,7 +732,7 @@ ${memoryRule}
                             <span className="text-white text-lg font-bold tracking-tight">바이브코딩 스튜디오</span>
                             
                             {/* 제품 선택 탭 */}
-                            <div className="ml-6 flex bg-[#222] p-1 rounded-lg">
+                            <div className="studio-products ml-6 flex bg-[#222] p-1 rounded-lg">
                                 <button 
                                     onClick={() => setProduct('ponybot')}
                                     className={`px-4 py-1.5 text-xs font-bold rounded-md transition-all ${product === 'ponybot' ? 'bg-white text-black shadow-sm' : 'text-[#999] hover:text-white'}`}
@@ -634,8 +788,8 @@ ${memoryRule}
                         )}
                     </header>
 
-                    <main className="flex flex-1 overflow-hidden relative bg-[#F8F9FA]">
-                        <div className="w-[420px] flex flex-col border-r border-[#D1D5DB] bg-white relative z-10 shadow-sm">
+                    <main className={`studio-main ${showExplanation ? 'is-explaining' : ''} flex flex-1 overflow-hidden relative bg-[#F8F9FA]`}>
+                        <div className="chat-pane flex flex-col border-r border-[#D1D5DB] bg-white relative z-10 shadow-sm">
                             <div className="flex-1 overflow-y-auto p-5 space-y-5 scrollbar-hide bg-white">
                                 {messages.map((msg, idx) => (
                                     <div key={idx} className={`flex ${msg.role === 'user' ? 'justify-end' : 'justify-start'} animate-fade-in`}>
@@ -699,8 +853,8 @@ ${memoryRule}
                             </div>
                         </div>
 
-                        <div className="flex-1 flex flex-col overflow-hidden relative">
-                            <div className="h-16 bg-white border-b border-[#D1D5DB] flex items-center justify-between px-6 z-20">
+                        <div className="studio-workspace flex-1 flex flex-col overflow-hidden relative">
+                            <div className="studio-toolbar bg-white border-b border-[#D1D5DB] flex items-center justify-between px-6 z-20">
                                 <div className="flex items-center gap-3">
                                     <div className="bg-black text-white p-1.5 px-2 rounded-lg shadow-sm">
                                         <i className="fa-solid fa-code"></i>
@@ -742,8 +896,8 @@ ${memoryRule}
                                 </div>
                             </div>
 
-                            <div className="flex-1 flex overflow-hidden relative p-6 gap-6">
-                                <div className={`transition-all duration-300 ${showExplanation ? 'w-3/5' : 'w-full'} h-full relative rounded-2xl shadow-sm overflow-hidden border border-[#D1D5DB]`}>
+                            <div className="studio-content flex-1 flex overflow-hidden relative p-6 gap-6">
+                                <div className={`code-editor transition-all duration-300 ${showExplanation ? 'w-[45%]' : 'w-full'} h-full relative rounded-2xl shadow-sm overflow-hidden border border-[#D1D5DB]`}>
                                     <textarea
                                         value={generatedCode}
                                         onChange={(e) => setGeneratedCode(e.target.value)}
@@ -756,26 +910,29 @@ ${memoryRule}
                                 </div>
 
                                 {showExplanation && (
-                                    <div className="w-2/5 h-full bg-white rounded-2xl shadow-lg border border-[#D1D5DB] flex flex-col animate-fade-in overflow-hidden">
+                                    <div className="explanation-panel w-[55%] h-full bg-white rounded-2xl shadow-lg border border-[#D1D5DB] flex flex-col animate-fade-in overflow-hidden">
                                         <div className="p-5 border-b border-[#D1D5DB] flex justify-between items-center bg-[#F8F9FA]">
                                             <div className="flex items-center gap-2 text-[#111] font-bold">
                                                 <div className="p-1.5 bg-[#E6F4EA] rounded-md text-[#137333]">
                                                     <i className="fa-solid fa-book-open"></i>
                                                 </div>
-                                                <span>코드 선생님</span>
+                                                <span>블록과 코드 설명</span>
                                             </div>
-                                            <button onClick={() => setShowExplanation(false)} className="text-[#888] hover:text-[#000] transition-colors">
+                                            <button onClick={() => setShowExplanation(false)} className="text-sm text-[#555] hover:text-black whitespace-nowrap" aria-label="설명 닫고 코드로 돌아가기">코드로 돌아가기
                                                 <i className="fa-solid fa-xmark text-lg"></i>
                                             </button>
                                         </div>
-                                        <div className="flex-1 p-6 overflow-y-auto text-sm text-[#333] leading-7 bg-white">
+                                        <div className="flex-1 p-4 overflow-y-auto text-sm text-[#333] leading-7 bg-white">
+                                            {explanationSnapshot && <BlockPreview key={explanationSnapshot.id} code={explanationSnapshot.code} product={explanationSnapshot.product} />}
+                                            {explanationSnapshot && (generatedCode !== explanationSnapshot.code || product !== explanationSnapshot.product) && <p className="mb-4 rounded-lg bg-amber-50 p-3 text-amber-900">코드 또는 제품이 변경됐어요. ‘코드 설명’을 다시 눌러 새로 확인해주세요.</p>}
+                                            <h3 className="font-bold mb-3">동작 순서 설명</h3>
                                             {isExplaining ? (
                                                 <div className="flex flex-col items-center justify-center h-48 gap-4 text-[#666]">
                                                     <div className="w-8 h-8 border-4 border-[#F1F3F4] border-t-black rounded-full animate-spin"></div>
                                                     <span className="font-medium animate-pulse">코드를 꼼꼼히 분석 중이에요...</span>
                                                 </div>
                                             ) : (
-                                                <div className="whitespace-pre-wrap font-medium">{explanationText}</div>
+                                                <div className="font-medium"><ExplanationText text={explanationText} /></div>
                                             )}
                                         </div>
                                     </div>
@@ -784,7 +941,7 @@ ${memoryRule}
                         </div>
                     </main>
 
-                    <footer className="bg-black text-white px-8 py-5 border-t border-[#222] shrink-0 text-xs flex justify-between items-center z-50">
+                    <footer className="studio-footer bg-black text-white px-8 py-5 border-t border-[#222] shrink-0 text-xs flex justify-between items-center z-50">
                         <div className="flex flex-col gap-1.5">
                             <strong className="text-sm font-bold tracking-tight">바운더리엑스 (Boundary X)</strong>
                             <span className="text-[#999] font-normal">"미래 기술을 교실의 책상 위로 옮기는 에듀테크 기업"</span>
